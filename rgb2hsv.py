@@ -1,11 +1,11 @@
 #-*- coding: utf-8 -*-
 #!/usr/bin/env python
 
-def rgb2hsv(r, g, b):
+def rgb2hsv(rgb):
     
-    r_percent = r / 255.0
-    g_percent = g / 255.0
-    b_percent = b / 255.0
+    r_percent = rgb[0] / 255.0
+    g_percent = rgb[1] / 255.0
+    b_percent = rgb[2] / 255.0
 
     cmax = max(r_percent, g_percent, b_percent)
     cmin = min(r_percent, g_percent, b_percent)
