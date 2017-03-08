@@ -32,7 +32,7 @@ def _get_pitch(hue):
     hue_floor = int(floor(hue))
 
     for p in pitches:
-        if hue_floor >= p[0] & hue_floor <= p[1]:
+        if hue_floor >= p[0] and hue_floor <= p[1]:
             return p[2]
 
     raise HueConversionError(hue_floor)
