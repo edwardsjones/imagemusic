@@ -41,7 +41,7 @@ def _get_pitch(hue):
 def _get_octave(saturation):
 
     # Formula in paper is wrong -- times by 9 gives 0-9 (which you want?)
-    return int(round(saturation * 8))
+    return int(round(saturation * 8)) + 1
 
 
 def _get_velocity(value):

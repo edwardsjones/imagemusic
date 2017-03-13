@@ -9,40 +9,12 @@ from PIL import Image
 from hsv2pov import hsv2pov
 from rgb2hsv import rgb2hsv
 
-def get_image_tuples(img_name, grid_name):
-
-    print "opening file"
-    # Read in the first line, and add all the values - grid width in units
-    with open(grid_name) as grid:
-        first_line = grid.readline()
-        print "read line"
-        first_row = first_line.split(",")
-        grid_width = sum(map(int, first_row))
-
-        for i, l in enumerate(grid):
-            pass
-    
-    grid_height = i + 2
+def get_pov_values(img_name, grid_name, result_name):
 
     img = Image.open(img_name)
+    grid_width, grid_height = get_grid_dimensions(grid_name)
+    unit_width, unit_height = get_unit_dimensions(img.width, img.height, grid_width, grid_height)
 
-    print "grid_height is " + str(grid_height)
-    print "grid_width is " + str(grid_width)
-
-    # These values are the new, scaled dimensions of the image
-    # width_lcm = lcm(grid_width, img.width)
-    # height_lcm = lcm(grid_height, img.height)
-
-    # These values represent the height and width of one square in pixels
-    # unit_width = width_lcm / grid_width
-    # unit_height = height_lcm / grid_height
-    unit_width = img.width / grid_width
-    unit_height = img.height / grid_height
-
-    # scaled = img.resize((width_lcm, height_lcm))
-    # scaled = img.resize((1260, 812))
-
-    # pixels = scaled.load()
     pixels = img.load()
 
     # Now need to work along rows of grid and average region of image appropriately
@@ -75,12 +47,32 @@ def get_image_tuples(img_name, grid_name):
         ps = map(hsv2pov, hs)
         povs.append(ps)
 
+    target = open(result_name, "w")
+    pretty_print(povs, target)
+    target.close()
+    
     return povs
 
 
-def lcm(a, b):
+def get_grid_dimensions(grid_name):
 
-    return ((a * b) / gcd(a, b))
+    # Read in the first line, and add all the values - grid width in units
+    with open(grid_name) as grid:
+        first_line = grid.readline()
+        first_row = first_line.split(",")
+        grid_width = sum(map(int, first_row))
+
+        for i, l in enumerate(grid):
+            pass
+    
+    grid_height = i + 2
+
+    return (grid_width, grid_height)
+
+
+def get_unit_dimensions(iw, ih, gw, gh):
+
+    return ((float(iw) / gw), (float(ih) / gh))
 
 
 # Image should be opened and loaded!
@@ -184,3 +176,13 @@ def get_average_colour(image, start, end):
 
     # May need to do some int->float stuff here
     return ((r_total / count), (g_total / count), (b_total / count))
+
+
+def pretty_print(lists, target):
+
+    for row in lists:
+        for i, r in enumerate(row):
+            if not (i+1) == len(row):
+                target.write("(P: {}, O: {}, V: {:06.2f}), ".format(r["pitch"], r["octave"], r["velocity"]))
+            else:
+                target.write("(P: {}, O: {}, V: {:06.2f})\n".format(r["pitch"], r["octave"], r["velocity"]))
