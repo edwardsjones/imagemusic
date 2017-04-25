@@ -1,21 +1,32 @@
 #-*- coding: utf-8 -*-
 #!/usr/bin/env python
 
+import sys
+
 from fractions import gcd
 from math import ceil
 from math import floor
 from PIL import Image
+from midiutil import MIDIFile
 
 from hsv2pov import hsv2pov
 from rgb2hsv import rgb2hsv
 
-def get_pov_values(img_name, grid_name, result_name):
+def jpg_to_midi(img_name, grid_name, result_name):
+
+    # First we have to convert everything to string from symbol (pd datastructure)
+    img_name = str(img_name)
+    grid_name = str(grid_name)
+    result_name = str(result_name)
 
     img = Image.open(img_name)
     grid_width, grid_height = get_grid_dimensions(grid_name)
     unit_width, unit_height = get_unit_dimensions(img.width, img.height, grid_width, grid_height)
 
     pixels = img.load()
+
+    result_MIDI = MIDIFile(numTracks=grid_height, adjust_origin=False)
+    result_MIDI.addTempo(0, 0, 60)
 
     # Now need to work along rows of grid and average region of image appropriately
     with open(grid_name) as grid:
@@ -32,26 +43,68 @@ def get_pov_values(img_name, grid_name, result_name):
             row_colours = []
             regions = line.split(",")
 
+            # r = each number in a row in the grid
             for r in regions:
+                starting_beat = x_count
+
                 starting_x = x_count * unit_width
                 x_count += int(r)                
                 ending_x = x_count * unit_width
-                row_colours.append(get_average_colour(pixels, (float(starting_x), float(starting_y)), (float(ending_x), float(ending_y))))
+                # row_colours.append(get_average_colour(pixels, (float(starting_x), float(starting_y)), (float(ending_x), float(ending_y))))
 
-            colours.append(row_colours)
+                average_colour = get_average_colour(pixels, (float(starting_x), float(starting_y)), (float(ending_x), float(ending_y)))
+                pov = hsv2pov(rgb2hsv(average_colour))
 
-    povs = []
+                #print pov
+                #print get_midi_pitch(pov)
+                #print "Beat start " + str(starting_beat)
+                #print "Length " + str(r)
 
-    for c in colours:
-        hs = map(rgb2hsv, c)
-        ps = map(hsv2pov, hs)
-        povs.append(ps)
+                # y_index = line number, which corresponds to track number of note
+                # notes all placed on channel 0
+                # midi_pitch worked out by passing average colour (pov tuple) to function
+                # starting beat is the x_count at the start of this inner loop iteration; this is the sum of all previous numbers on the line
+                # int(r) is the duration of the note in beats; given by the length of the cell in the grid
+                # volume of note is given by velocity from pov tuple
+                result_MIDI.addNote(y_index, 0, get_midi_pitch(pov), starting_beat, int(r), pov["velocity"])
 
-    target = open(result_name, "w")
-    pretty_print(povs, target)
-    target.close()
+    #povs = []
+
+    #for c in colours:
+        #hs = map(rgb2hsv, c)
+        #ps = map(hsv2pov, hs)
+        #povs.append(ps)
+
+    with open(result_name, "wb") as output_file:
+        result_MIDI.writeFile(output_file)
+
+    #target = open(result_name, "w")
+    #pretty_print(povs, target)
+    #target.close()
     
-    return povs
+    #return povs
+
+
+def get_midi_pitch(pov):
+
+    midi_pitches = {
+        "A": [9,21,33,45,57,69,81,93,105],
+        "A#": [10,22,34,46,58,70,82,94,106],
+        "B": [11,23,35,47,59,71,83,95,107],
+        "C": [0,12,24,36,48,60,72,84,96],
+        "C#": [1,13,25,37,49,61,73,85,97],
+        "D": [2,14,26,38,50,62,74,86,98],
+        "D#": [3,15,27,39,51,63,75,87,99],
+        "E": [4,16,28,40,52,64,76,88,100],
+        "F": [5,17,29,41,53,65,77,89,101],
+        "F#": [6,18,30,42,54,66,78,90,102],
+        "G": [7,19,31,43,55,67,79,91,103],
+        "G#": [8,20,32,44,56,68,80,92,104]
+    }
+
+    # Octave is an int between 0-8; indices start at octave 1
+    # As a result, index for a given octave = octave - 1
+    return midi_pitches[pov["pitch"]][pov["octave"]-1]
 
 
 def get_grid_dimensions(grid_name):
