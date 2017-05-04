@@ -78,13 +78,7 @@ class Window(QtGui.QWidget):
         self.dirTxt.setText(self.dirName)
 
     def selectConvert(self):
-        print "hi"
-        print self.imgName
-        print self.mapName
-        print self.dirName
-        print self.outTxt.text()
         if hasattr(self, "imgName") and hasattr(self, "mapName") and hasattr(self, "dirName") and self.outTxt.text():
-            print "we made it?"
             jpg_to_midi(self.imgName, self.mapName, self.dirName + "/" + self.outTxt.text())
         
 
